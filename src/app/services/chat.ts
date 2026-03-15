@@ -4,7 +4,7 @@ import { io, Socket } from 'socket.io-client';
 import { Observable } from 'rxjs';
 
 export interface Mensaje {
-  usuario: any; // Can be ID string or populated object { _id: string, name: string }
+  usuario: any;
   organizacion: string; 
   contenido: string;
   _id?: string;
@@ -21,32 +21,53 @@ export class Chat {
 
   constructor(private http: HttpClient) {
     this.socket = io(this.SERVER_URL);
+
+    this.socket.on('connect', () => {
+      console.log('✅ Socket conectado:', this.socket.id);
+    });
+
+    this.socket.on('disconnect', () => {
+    });
+
+    this.socket.on('user-typing', (data) => {
+    });
   }
 
-  /**
-   * Obtener historial completo de mensajes (REST)
-   */
   getHistory(): Observable<Mensaje[]> {
     return this.http.get<Mensaje[]>(`${this.SERVER_URL}/mensajes`);
   }
 
-  /**
-   * Unirse a una organización (sala de chat)
-   */
   joinOrganization(organizacionId: string): void {
     this.socket.emit('join-organization', organizacionId);
   }
 
-  /**
-   * Enviar un mensaje
-   */
   sendMessage(mensaje: Mensaje): void {
     this.socket.emit('message', mensaje);
   }
 
-  /**
-   * Escuchar nuevos mensajes entrantes
-   */
+  sendTyping(usuario: string, usuarioName: string): void {
+  this.socket.emit('typing', { usuario: usuario, usuarioName: usuarioName });
+  }
+
+  stopTyping(usuario: string, usuarioName: string): void {
+  this.socket.emit('stop-typing', { usuario: usuario, usuarioName: usuarioName });
+  }
+  onUserTyping(): Observable<any> {
+    return new Observable((observer) => {
+      this.socket.on('user-typing', (data) => {
+        observer.next(data);
+      });
+    });
+  }
+
+  onUserStopTyping(): Observable<any> {
+    return new Observable((observer) => {
+      this.socket.on('user-stop-typing', (data) => {
+        observer.next(data);
+      });
+    });
+  }
+
   getMessages(): Observable<Mensaje> {
     return new Observable((observer) => {
       this.socket.on('message', (data: Mensaje) => {
@@ -55,9 +76,6 @@ export class Chat {
     });
   }
 
-  /**
-   * Desconectarse del socket
-   */
   disconnect(): void {
     if (this.socket) {
       this.socket.disconnect();

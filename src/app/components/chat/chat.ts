@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chat, Mensaje } from '../../services/chat';
@@ -20,13 +20,21 @@ export class ChatComponent implements OnInit, OnDestroy {
   
   public nuevoMensaje: string = '';
   public mensajes: Mensaje[] = [];
-  
-  private messageSub!: Subscription;
 
-  constructor(private chatService: Chat, private router: Router) {}
+  public typingUser: string | null = null;
+
+  private messageSub!: Subscription;
+  private typingSub!: Subscription;
+  private stopTypingSub!: Subscription;
+  private typingTimeout: any;
+
+  constructor(
+    private chatService: Chat,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
-    // Cargar datos de la sesión
     if (typeof window !== 'undefined' && window.sessionStorage) {
       this.usuarioActivo = sessionStorage.getItem('chat_user_id') || '';
       this.usuarioActivoName = sessionStorage.getItem('chat_user_name') || '';
@@ -35,31 +43,37 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     if (!this.usuarioActivo || !this.organizacionActiva) {
-      // Si no está registrado, lo devolvemos al login
       this.router.navigate(['/login']);
       return;
     }
 
-    // 0. Cargar historial de mensajes globales
     this.chatService.getHistory().subscribe((history: Mensaje[]) => {
       this.mensajes = history;
       this.scrollToBottom();
     });
 
-    // 1. Unirse a la sala (opcional ahora que es global, pero lo dejamos por si acaso)
     this.chatService.joinOrganization(this.organizacionActiva);
 
-    // 2. Escuchar mensajes entrantes
     this.messageSub = this.chatService.getMessages().subscribe((mensaje: Mensaje) => {
       this.mensajes.push(mensaje);
       this.scrollToBottom();
     });
+
+    this.typingSub = this.chatService.onUserTyping().subscribe((data: any) => {
+      this.typingUser = `${data.usuarioName} está escribiendo...`;
+      this.cdr.detectChanges();
+    });
+
+    this.stopTypingSub = this.chatService.onUserStopTyping().subscribe(() => {
+      this.typingUser = null;
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy(): void {
-    if (this.messageSub) {
-      this.messageSub.unsubscribe();
-    }
+    if (this.messageSub) this.messageSub.unsubscribe();
+    if (this.typingSub) this.typingSub.unsubscribe();
+    if (this.stopTypingSub) this.stopTypingSub.unsubscribe();
     this.chatService.disconnect();
   }
 
@@ -72,14 +86,19 @@ export class ChatComponent implements OnInit, OnDestroy {
       contenido: this.nuevoMensaje
     };
 
-    // Emitir al backend
     this.chatService.sendMessage(mensaje);
-    
-    // Limpiar input
+    this.chatService.stopTyping(this.usuarioActivo, this.usuarioActivoName);
     this.nuevoMensaje = '';
   }
 
-  // Helper para obtener el nombre o ID del usuario de forma segura
+  onTyping(): void {
+    this.chatService.sendTyping(this.usuarioActivo, this.usuarioActivoName);
+    clearTimeout(this.typingTimeout);
+    this.typingTimeout = setTimeout(() => {
+      this.chatService.stopTyping(this.usuarioActivo, this.usuarioActivoName);
+    }, 1500);
+  }
+
   getUsuarioName(usuario: any): string {
     if (typeof usuario === 'object' && usuario !== null) {
       return usuario.name || usuario._id;
@@ -87,7 +106,6 @@ export class ChatComponent implements OnInit, OnDestroy {
     return usuario;
   }
 
-  // Helper para comparar usuarios (por id)
   esMensajeMio(mensaje: Mensaje): boolean {
     const id = typeof mensaje.usuario === 'object' ? mensaje.usuario._id : mensaje.usuario;
     return id === this.usuarioActivo;

@@ -1,16 +1,24 @@
 <div class="chat-wrapper">
-  <!-- Cabecera del chat -->
   <header class="chat-header">
     <div class="header-info">
       <h2>Organización: {{ organizacionActivaName }}</h2>
-      <span class="status-indicator">En línea</span>
+      <div class="header-bottom">
+        <span class="status-indicator">En línea</span>
+        @if (typingUser) {
+          <span class="typing-indicator">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            {{ typingUser }}
+          </span>
+        }
+      </div>
     </div>
     <div class="user-badge">
       Usuario: {{ usuarioActivoName }}
     </div>
   </header>
 
-  <!-- Lista de mensajes -->
   <div class="chat-messages" id="chat-messages">
     <div class="message-list">
       @for (mensaje of mensajes; track mensaje._id) {
@@ -33,7 +41,6 @@
     </div>
   </div>
 
-  <!-- Controles de input -->
   <footer class="chat-footer">
     <form (ngSubmit)="enviarMensaje()" class="input-form">
       <input 
@@ -43,6 +50,7 @@
         placeholder="Escribe su mensaje aquí..." 
         autocomplete="off"
         class="message-input"
+        (input)="onTyping()"
         required
       />
       <button type="submit" class="send-button" [disabled]="!nuevoMensaje.trim()">
