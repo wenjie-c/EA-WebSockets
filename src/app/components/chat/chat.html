@@ -1,3 +1,5 @@
+
+<!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css.css"> -->
 <div class="chat-wrapper">
   <header class="chat-header">
     <div class="header-info">
@@ -41,7 +43,7 @@
     </div>
   </div>
 
-  <footer class="chat-footer">
+  <div class="chat-footer">
     <form (ngSubmit)="enviarMensaje()" class="input-form">
       <input 
         type="text" 
@@ -60,5 +62,29 @@
         </svg>
       </button>
     </form>
-  </footer>
+  </div>
+</div>
+
+<div class="cnx-list container">
+  <div class="row">
+    <div class="col-sm-4"></div>
+    <div class="col-sm-4">
+      <h2>Lista de conectados</h2>
+      <button (click)='ngOnDestroy();'>Disconnect</button>
+  <button (click)='pingList();'>Refresh</button>
+  <ul>
+    @if (cnxList().length !== 0){
+    @for (item of cnxList(); track $index) {
+    <li class="cnx">
+      {{item.userName}}
+    </li>
+    }}
+    @else {
+      <li>Loading...</li>
+    }
+  </ul>
+    </div>
+    <div class="col-sm-4"></div>
+  </div>
+  
 </div>

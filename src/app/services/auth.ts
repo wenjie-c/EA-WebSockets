@@ -18,8 +18,8 @@ export interface OrgResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API_URL = 'http://localhost:1337/api'; // Swagger is served here, but the routes are at root actually. Wait, server.ts says: router.use('/usuarios', ...). Let's use root directly.
-  private readonly BASE_URL = 'http://localhost:1337';
+  private readonly API_URL = 'http://localhost:9000/api'; // Swagger is served here, but the routes are at root actually. Wait, server.ts says: router.use('/usuarios', ...). Let's use root directly.
+  private readonly BASE_URL = 'http://localhost:9000';
 
   constructor(private http: HttpClient) { }
 

@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chat, Mensaje } from '../../services/chat';
 import { Subscription } from 'rxjs';
 import { Router } from '@angular/router';
+import { Handshake } from '../../models/Handshake';
 
 @Component({
   selector: 'app-chat',
@@ -13,11 +14,11 @@ import { Router } from '@angular/router';
   styleUrl: './chat.css',
 })
 export class ChatComponent implements OnInit, OnDestroy {
-  public usuarioActivo: string = ''; 
+  public usuarioActivo: string = '';
   public usuarioActivoName: string = '';
   public organizacionActiva: string = '';
   public organizacionActivaName: string = '';
-  
+
   public nuevoMensaje: string = '';
   public mensajes: Mensaje[] = [];
 
@@ -27,11 +28,15 @@ export class ChatComponent implements OnInit, OnDestroy {
   private typingSub!: Subscription;
   private stopTypingSub!: Subscription;
   private typingTimeout: any;
+  private connectionListListener!: Subscription;
+  cnxList = signal<Handshake[]>([]);
+
+
 
   constructor(
     private chatService: Chat,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -59,6 +64,17 @@ export class ChatComponent implements OnInit, OnDestroy {
       this.scrollToBottom();
     });
 
+    this.chatService.presentation({
+      userName: sessionStorage.getItem('chat_user_name')!,
+      organizationName: sessionStorage.getItem('chat_org_name')!,
+      socketId: '',
+    });
+
+    this.connectionListListener = this.chatService.onList().subscribe((data: Handshake[]) => {this.cnxList.set(data); 
+      for(const row of data){
+        console.log(`Connected: [${row.userName}]`);
+    }});
+
     this.typingSub = this.chatService.onUserTyping().subscribe((data: any) => {
       this.typingUser = `${data.usuarioName} está escribiendo...`;
       this.cdr.detectChanges();
@@ -83,7 +99,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     const mensaje: Mensaje = {
       usuario: this.usuarioActivo,
       organizacion: this.organizacionActiva,
-      contenido: this.nuevoMensaje
+      contenido: this.nuevoMensaje,
     };
 
     this.chatService.sendMessage(mensaje);
@@ -118,5 +134,9 @@ export class ChatComponent implements OnInit, OnDestroy {
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
     }, 100);
+  }
+
+  pingList(){
+    this.chatService.pingList();
   }
 }
