@@ -8,3 +8,6 @@ Es podria fer, pero com que no tenim queues y la forma d'eliminar items en Javas
 + [Video conceptual](https://www.youtube.com/watch?v=1BfCnjr_Vjg)
 + [Video practico](https://www.youtube.com/watch?v=V6aoRAm-y9E)
 + [Documentacion](https://socket.io/docs/v4/client-socket-instance/)
+
+## IA Generativa:
+No se ha utilizado ningún agente de IA generativa.
